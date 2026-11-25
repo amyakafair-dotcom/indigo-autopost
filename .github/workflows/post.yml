@@ -1,0 +1,32 @@
+name: Instagram autopost
+
+on:
+  schedule:
+    - cron: "7 * * * *"  # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: autopost
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Publish due posts
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+        run: python post.py
+      - name: Save status
+        if: always()
+        run: |
+          git config user.name "autopost-bot"
+          git config user.email "autopost-bot@users.noreply.github.com"
+          git add posts.csv
+          git diff --cached --quiet || (git commit -m "Update post status" && git push)
