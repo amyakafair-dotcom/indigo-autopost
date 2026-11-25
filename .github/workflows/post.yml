@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "7 * * * *"  # hourly
   workflow_dispatch:
+    inputs:
+      check_only:
+        description: "Only check the token, publish nothing"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -23,6 +28,7 @@ jobs:
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID || '17841421560064697' }}  # @indigo__cosmetics
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          CHECK_ONLY: ${{ inputs.check_only }}
         run: python post.py
       - name: Save status
         if: always()

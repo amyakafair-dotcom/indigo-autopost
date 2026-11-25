@@ -64,6 +64,16 @@ def publish_instagram(row):
     return call("POST", f"{USER}/media_publish", creation_id=c["id"])["id"]
 
 
+def check():
+    """Print which Instagram account the token reaches; publishes nothing."""
+    global USER
+    if not TOKEN:
+        sys.exit("IG_TOKEN secret is missing.")
+    USER = USER or call("GET", "me", fields="user_id")["user_id"]
+    info = call("GET", USER, fields="username,media_count")
+    print(f"OK: token reaches @{info.get('username')} (id {USER}, {info.get('media_count')} posts) via {HOST}")
+
+
 def main():
     with open(CSV_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -114,4 +124,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    check() if os.environ.get("CHECK_ONLY") == "true" else main()
