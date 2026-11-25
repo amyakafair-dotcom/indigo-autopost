@@ -1,8 +1,10 @@
-"""Publish due rows from posts.csv to Instagram via the Graph API.
+"""Publish due rows from posts.csv to Instagram (Instagram API with Instagram Login).
 
-Env: IG_USER_ID, IG_TOKEN (a Page token; also used for the Facebook Page).
+Env: IG_TOKEN (Instagram user token from the app's "API setup with Instagram login").
+     IG_USER_ID optional (looked up from the token). IG_API_HOST optional:
+     set to graph.facebook.com to use a Facebook Page token instead (needed for "facebook").
 CSV columns: time (ISO 8601 with offset), type (IMAGE|REEL), media_url, caption, platforms, status.
-platforms: "instagram", "facebook" or both (empty = both).
+platforms: "instagram", "facebook" or both (empty = instagram).
 Due rows get published to each platform not yet in status; status records "platform:id" per success,
 or "platform:ERROR <msg>" on failure (cleared and retried on the next run).
 """
@@ -16,7 +18,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-API = "https://graph.facebook.com/v27.0"
+API = f"https://{os.environ.get('IG_API_HOST') or 'graph.instagram.com'}/v23.0"
 CSV_PATH = "posts.csv"
 USER = os.environ.get("IG_USER_ID", "")
 TOKEN = os.environ.get("IG_TOKEN", "")
@@ -73,14 +75,16 @@ def main():
     for row in rows:
         if datetime.fromisoformat(row["time"]) > now:
             continue
-        wanted = [p.strip() for p in (row.get("platforms") or "instagram,facebook").split(",") if p.strip()]
+        wanted = [p.strip() for p in (row.get("platforms") or "instagram").split(",") if p.strip()]
         done = [s for s in (row["status"] or "").split()
                 if s.split(":")[0] in publishers and not s.endswith(":ERROR")]
         todo = [p for p in wanted if not any(s.startswith(p + ":") for s in done)]
         if not todo:
             continue
-        if not (USER and TOKEN):
-            sys.exit("IG_USER_ID / IG_TOKEN secrets are missing; add them in repo Settings > Secrets.")
+        if not TOKEN:
+            sys.exit("IG_TOKEN secret is missing; add it in repo Settings > Secrets.")
+        global USER
+        USER = USER or call("GET", "me", fields="user_id")["user_id"]
         errors = []
         for platform in todo:
             try:

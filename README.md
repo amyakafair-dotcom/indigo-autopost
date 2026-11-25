@@ -1,21 +1,18 @@
-# Indigo Cosmetics — Instagram + Facebook autopost
+# Indigo Cosmetics — Instagram autopost
 
-Publishes scheduled posts to @indigo__cosmetics and the Indigo Facebook Page through the official Meta Graph API. Runs hourly on GitHub Actions; no computer needs to stay on.
+Publishes scheduled posts to @indigo__cosmetics through the official Instagram API (Instagram Login, no Facebook Page needed). Runs hourly on GitHub Actions; no computer needs to stay on.
 
 ## One-time setup
 
-1. **Instagram account type.** In the Instagram app: Settings → Account type and tools → switch to **Business** (or Creator). Link it to the Indigo Facebook Page.
-2. **Meta app.** Done: app **Indigo Autopost** (Instagram API + Manage everything on your Page, with `pages_manage_posts`).
-3. **Token (Page token, does not expire).** In Graph API Explorer (developers.facebook.com/tools/explorer):
-   - Meta App: Indigo Autopost. Add permissions `instagram_basic`, `instagram_content_publish`, `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `business_management`. Click **Generate Access Token** and approve.
-   - Open the token in the Access Token Debugger (the ⓘ icon) → **Extend Access Token** → copy the long-lived token.
-   - Back in Explorer, paste it and run `me/accounts?fields=name,access_token,instagram_business_account{id,username}`.
-   - The Page `access_token` in that result is `IG_TOKEN` (used for both Instagram and the Facebook Page). A Page token made from a long-lived user token does not expire.
-4. **Instagram user id.** From the same result, `instagram_business_account.id` for `indigo__cosmetics` is `IG_USER_ID`.
-5. **GitHub.** Repo is ready. Go to Settings → Secrets and variables → Actions → add:
-   - `IG_USER_ID` — the id from step 4
-   - `IG_TOKEN` — the token from step 3
-6. Test: Actions tab → *Indigo autopost* → **Run workflow**.
+1. **Instagram account type.** Done: @indigo__cosmetics is a professional (business) account.
+2. **Meta app.** App **Indigo Autopost** → Use cases → *Manage messaging & content on Instagram* → Customize → **API setup with Instagram login**.
+   - Under *Generate access tokens*, click **Add account**, log in as @indigo__cosmetics and approve.
+   - Click **Generate token** next to the account and copy it (valid 60 days).
+3. **GitHub.** Settings → Secrets and variables → Actions → **New repository secret**: name `IG_TOKEN`, value the token from step 2. (`IG_USER_ID` is optional; it is looked up from the token.)
+4. Test: Actions tab → *Indigo autopost* → **Run workflow**.
+5. **Every ~60 days:** generate a new token (step 2) and update `IG_TOKEN`.
+
+Facebook Page posting is supported too (`platforms` = `facebook`) but needs a Facebook Page token: set secret/env `IG_API_HOST=graph.facebook.com` and use a Page token in `IG_TOKEN`.
 
 ## Adding posts
 
@@ -27,7 +24,7 @@ Edit `posts.csv`, one row per post:
 | `type` | `IMAGE` or `REEL` |
 | `media_url` | **public direct link** to a JPEG (image) or MP4 (reel) |
 | `caption` | post text; wrap in quotes if it has commas |
-| `platforms` | `instagram`, `facebook`, or `instagram,facebook`; empty = both |
+| `platforms` | `instagram` (default when empty); `facebook` needs a Page token |
 | `status` | leave empty — the bot fills in `instagram:<id> facebook:<id>` or `<platform>:ERROR ...` |
 
 A failed platform is retried on the next run; platforms already posted are skipped. Never post a row twice by clearing a status that already has ids.
