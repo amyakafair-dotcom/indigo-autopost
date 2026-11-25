@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-API = "https://graph.facebook.com/v21.0"
+API = "https://graph.facebook.com/v27.0"
 CSV_PATH = "posts.csv"
 USER = os.environ["IG_USER_ID"]
 TOKEN = os.environ["IG_TOKEN"]
