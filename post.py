@@ -1,8 +1,10 @@
 """Publish due rows from posts.csv to Instagram via the Graph API.
 
-Env: IG_USER_ID, IG_TOKEN.
-CSV columns: time (ISO 8601 with offset), type (IMAGE|REEL), media_url, caption, status.
-Rows with empty status and time <= now get published; status becomes the post id or ERROR:<msg>.
+Env: IG_USER_ID, IG_TOKEN (a Page token; also used for the Facebook Page).
+CSV columns: time (ISO 8601 with offset), type (IMAGE|REEL), media_url, caption, platforms, status.
+platforms: "instagram", "facebook" or both (empty = both).
+Due rows get published to each platform not yet in status; status records "platform:id" per success,
+or "platform:ERROR <msg>" on failure (cleared and retried on the next run).
 """
 import csv
 import json
@@ -33,7 +35,14 @@ def call(method, path, **params):
         raise RuntimeError(json.load(e).get("error", {}).get("message", str(e)))
 
 
-def publish(row):
+def publish_facebook(row):
+    page = call("GET", "me", fields="id")["id"]
+    if row["type"].upper() == "REEL":
+        return call("POST", f"{page}/videos", file_url=row["media_url"], description=row["caption"])["id"]
+    return call("POST", f"{page}/photos", url=row["media_url"], message=row["caption"])["id"]
+
+
+def publish_instagram(row):
     if row["type"].upper() == "REEL":
         c = call("POST", f"{USER}/media", media_type="REELS", video_url=row["media_url"], caption=row["caption"])
         # Video needs processing before publish.
@@ -56,18 +65,31 @@ def main():
         reader = csv.DictReader(f)
         fields, rows = reader.fieldnames, list(reader)
 
+    if "platforms" not in fields:
+        fields.insert(fields.index("status"), "platforms")
     now = datetime.now(timezone.utc)
+    publishers = {"instagram": publish_instagram, "facebook": publish_facebook}
     failed = False
     for row in rows:
-        if row["status"].strip() or datetime.fromisoformat(row["time"]) > now:
+        if datetime.fromisoformat(row["time"]) > now:
             continue
-        try:
-            row["status"] = publish(row)
-            print(f"posted {row['time']} -> {row['status']}")
-        except Exception as e:
-            row["status"] = f"ERROR: {e}"
-            print(f"failed {row['time']}: {e}", file=sys.stderr)
-            failed = True
+        wanted = [p.strip() for p in (row.get("platforms") or "instagram,facebook").split(",") if p.strip()]
+        done = [s for s in (row["status"] or "").split()
+                if s.split(":")[0] in publishers and not s.endswith(":ERROR")]
+        todo = [p for p in wanted if not any(s.startswith(p + ":") for s in done)]
+        if not todo:
+            continue
+        errors = []
+        for platform in todo:
+            try:
+                post_id = publishers[platform](row)
+                done.append(f"{platform}:{post_id}")
+                print(f"posted {row['time']} {platform} -> {post_id}")
+            except Exception as e:
+                errors.append(f"{platform}:ERROR {e}")
+                print(f"failed {row['time']} {platform}: {e}", file=sys.stderr)
+                failed = True
+        row["status"] = " ".join(done + errors)
 
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
