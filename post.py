@@ -73,6 +73,7 @@ def check():
     global USER
     if not TOKEN:
         sys.exit("IG_TOKEN secret is missing.")
+    print(f"token: {len(_raw)} chars stored, {len(TOKEN)} used, starts {TOKEN[:3]}..., host {HOST}")
     USER = USER or call("GET", "me", fields="user_id")["user_id"]
     info = call("GET", USER, fields="username,media_count")
     print(f"OK: token reaches @{info.get('username')} (id {USER}, {info.get('media_count')} posts) via {HOST}")
