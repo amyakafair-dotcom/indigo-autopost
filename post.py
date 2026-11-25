@@ -23,8 +23,8 @@ _raw = os.environ.get("IG_TOKEN", "")
 # Tolerate stray quotes, spaces, newlines or words pasted around the token.
 _m = re.search(r"[A-Za-z0-9_\-]{60,}", _raw)
 TOKEN = _m.group(0) if _m else _raw.strip()
-# Instagram-login tokens (IGAA...) use graph.instagram.com; Facebook-login tokens (EAA...) use graph.facebook.com.
-HOST = os.environ.get("IG_API_HOST") or ("graph.facebook.com" if TOKEN.startswith("EAA") else "graph.instagram.com")
+# Instagram-login tokens (IG...) use graph.instagram.com; Facebook-login tokens (EA...) use graph.facebook.com.
+HOST = os.environ.get("IG_API_HOST") or ("graph.instagram.com" if TOKEN.startswith("IG") else "graph.facebook.com")
 API = f"https://{HOST}/v23.0"
 CSV_PATH = "posts.csv"
 USER = os.environ.get("IG_USER_ID", "")
