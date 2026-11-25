@@ -13,6 +13,7 @@ concurrency: autopost
 jobs:
   post:
     runs-on: ubuntu-latest
+    environment: autopost
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
