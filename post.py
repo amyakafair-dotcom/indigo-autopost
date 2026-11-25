@@ -18,10 +18,12 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-API = f"https://{os.environ.get('IG_API_HOST') or 'graph.instagram.com'}/v23.0"
+TOKEN = os.environ.get("IG_TOKEN", "").strip()
+# Instagram-login tokens (IGAA...) use graph.instagram.com; Facebook-login tokens (EAA...) use graph.facebook.com.
+HOST = os.environ.get("IG_API_HOST") or ("graph.facebook.com" if TOKEN.startswith("EAA") else "graph.instagram.com")
+API = f"https://{HOST}/v23.0"
 CSV_PATH = "posts.csv"
 USER = os.environ.get("IG_USER_ID", "")
-TOKEN = os.environ.get("IG_TOKEN", "")
 
 
 def call(method, path, **params):
@@ -84,7 +86,14 @@ def main():
         if not TOKEN:
             sys.exit("IG_TOKEN secret is missing; add it in repo Settings > Secrets.")
         global USER
-        USER = USER or call("GET", "me", fields="user_id")["user_id"]
+        if not USER:
+            if HOST == "graph.instagram.com":
+                USER = call("GET", "me", fields="user_id")["user_id"]
+            else:
+                pages = call("GET", "me/accounts", fields="instagram_business_account")["data"]
+                USER = next((p["instagram_business_account"]["id"] for p in pages if "instagram_business_account" in p), "")
+                if not USER:
+                    sys.exit("No Instagram account found for this token; set the IG_USER_ID secret.")
         errors = []
         for platform in todo:
             try:
