@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
       - name: Publish due posts
         env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID || '17841421560064697' }}  # @indigo__cosmetics
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
         run: python post.py
       - name: Save status
