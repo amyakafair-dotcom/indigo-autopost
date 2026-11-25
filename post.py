@@ -11,6 +11,7 @@ or "platform:ERROR <msg>" on failure (cleared and retried on the next run).
 import csv
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -18,7 +19,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-TOKEN = os.environ.get("IG_TOKEN", "").strip()
+_raw = os.environ.get("IG_TOKEN", "")
+# Tolerate stray quotes, spaces, newlines or words pasted around the token.
+_m = re.search(r"[A-Za-z0-9_\-]{60,}", _raw)
+TOKEN = _m.group(0) if _m else _raw.strip()
 # Instagram-login tokens (IGAA...) use graph.instagram.com; Facebook-login tokens (EAA...) use graph.facebook.com.
 HOST = os.environ.get("IG_API_HOST") or ("graph.facebook.com" if TOKEN.startswith("EAA") else "graph.instagram.com")
 API = f"https://{HOST}/v23.0"
