@@ -34,7 +34,7 @@ A failed platform is retried on the next run; platforms already posted are skipp
 
 ## Notes
 
-- Media must be a public direct URL (e.g. Cloudinary, Imgur, or a Google Drive direct-download link — not this private repo). Instagram fetches it itself.
+- Media lives in `media/` and is linked by its raw.githubusercontent.com URL, so this repo must be public (secrets stay private). Instagram and Facebook fetch the file themselves.
 - Images: JPEG only. Reels: MP4, 9:16, 3 s – 15 min.
 - Posts land up to ~1 hour after `time` (hourly check).
 - Instagram caps API publishing per 24 hours; normal brand schedules are far below it.
