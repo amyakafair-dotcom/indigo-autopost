@@ -18,8 +18,8 @@ from datetime import datetime, timezone
 
 API = "https://graph.facebook.com/v27.0"
 CSV_PATH = "posts.csv"
-USER = os.environ["IG_USER_ID"]
-TOKEN = os.environ["IG_TOKEN"]
+USER = os.environ.get("IG_USER_ID", "")
+TOKEN = os.environ.get("IG_TOKEN", "")
 
 
 def call(method, path, **params):
@@ -79,6 +79,8 @@ def main():
         todo = [p for p in wanted if not any(s.startswith(p + ":") for s in done)]
         if not todo:
             continue
+        if not (USER and TOKEN):
+            sys.exit("IG_USER_ID / IG_TOKEN secrets are missing; add them in repo Settings > Secrets.")
         errors = []
         for platform in todo:
             try:
